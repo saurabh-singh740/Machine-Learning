@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+import joblib  # ✅ NEW
 
 # Load and split the diabetes dataset for a specific client
 def load_data(client_id, num_clients=2):
@@ -14,12 +15,19 @@ def load_data(client_id, num_clients=2):
     X = df.drop("Outcome", axis=1).values
     y = df["Outcome"].values.reshape(-1, 1)
 
-    # Standardize features
+    # -------------------------------
+    # Standardize features (IMPORTANT)
+    # -------------------------------
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
 
+    # ✅ Save scaler ONLY ONCE (safe in federated demo)
+    joblib.dump(scaler, "scaler.pkl")
+
     # Train-test split (same for all clients)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
     # Divide training data among clients
     chunk_size = len(X_train) // num_clients
@@ -31,9 +39,16 @@ def load_data(client_id, num_clients=2):
     y_client = y_train[start:end]
 
     # Convert to PyTorch DataLoader
-    trainset = TensorDataset(torch.tensor(X_client, dtype=torch.float32),
-                             torch.tensor(y_client, dtype=torch.float32))
-    testset = TensorDataset(torch.tensor(X_test, dtype=torch.float32),
-                            torch.tensor(y_test, dtype=torch.float32))
+    trainset = TensorDataset(
+        torch.tensor(X_client, dtype=torch.float32),
+        torch.tensor(y_client, dtype=torch.float32),
+    )
+    testset = TensorDataset(
+        torch.tensor(X_test, dtype=torch.float32),
+        torch.tensor(y_test, dtype=torch.float32),
+    )
 
-    return DataLoader(trainset, batch_size=16, shuffle=True), DataLoader(testset, batch_size=16)
+    return (
+        DataLoader(trainset, batch_size=16, shuffle=True),
+        DataLoader(testset, batch_size=16),
+    )

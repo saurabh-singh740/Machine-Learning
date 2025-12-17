@@ -1,10 +1,18 @@
 import torch
+import joblib
 from model import DiabetesNet
 
+# -------------------------------
 # Load trained global model
+# -------------------------------
 model = DiabetesNet()
 model.load_state_dict(torch.load("global_model.pth"))
 model.eval()
+
+# -------------------------------
+# Load the SAME scaler used during training
+# -------------------------------
+scaler = joblib.load("scaler.pkl")
 
 # ---- USER INPUT ----
 print("\nInput Patient Data:")
@@ -13,20 +21,37 @@ glucose = float(input("Glucose = "))
 bmi = float(input("BMI = "))
 age = float(input("Age = "))
 
-# Dummy values for remaining features (safe for demo)
+# Fixed / demo values for remaining features
+pregnancies = 2
 bp = 72
 skin = 35
 insulin = 0
 dpf = 0.62
-pregnancies = 2
 
-# Create input tensor (same order as dataset)
-sample = torch.tensor(
-    [[pregnancies, glucose, bp, skin, insulin, bmi, dpf, age]],
-    dtype=torch.float32
-)
+# -------------------------------
+# Create input array (RAW values)
+# Order MUST match training data
+# -------------------------------
+sample = [[
+    pregnancies,
+    glucose,
+    bp,
+    skin,
+    insulin,
+    bmi,
+    dpf,
+    age
+]]
 
+# -------------------------------
+# Apply SAME standardization
+# -------------------------------
+sample = scaler.transform(sample)
+sample = torch.tensor(sample, dtype=torch.float32)
+
+# -------------------------------
 # Prediction
+# -------------------------------
 with torch.no_grad():
     prob = model(sample).item()
 
