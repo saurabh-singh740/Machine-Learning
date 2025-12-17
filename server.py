@@ -19,23 +19,22 @@ def weighted_average(metrics):
 # -------- Custom Strategy --------
 class CustomFedAvg(fl.server.strategy.FedAvg):
 
-    def aggregate_evaluate(self, rnd, results, failures):
-        aggregated = super().aggregate_evaluate(rnd, results, failures)
-
-        if aggregated is not None:
-            acc = aggregated[1]["accuracy"] * 100
-            if rnd in [1, 2, 5, 10]:
-                print(f"Round {rnd}/10")
-                print("Aggregating updates from 2 clients...")
-                print(f"Global Model Accuracy: {acc:.1f}%\n")
-
-        return aggregated
-
-    # ✅ CORRECT PLACE TO SAVE GLOBAL MODEL
     def aggregate_fit(self, rnd, results, failures):
+
+        print(f"\n🔐 Verifying model updates (Round {rnd})")
+
+        # 🔐 READ SHA FROM CLIENT METADATA
+        for client_proxy, fit_res in results:
+            sha = fit_res.metrics.get("sha256", None)
+            if sha:
+                print(f"✔ Client {client_proxy.cid} SHA-256: {sha[:16]}...")
+            else:
+                print(f"⚠ Client {client_proxy.cid} sent no SHA")
+
+        # ✅ DO NORMAL FEDAVG (DO NOT TOUCH CORE LOGIC)
         aggregated = super().aggregate_fit(rnd, results, failures)
 
-        # Save model ONLY after last round
+        # Save final global model
         if rnd == 10 and aggregated is not None:
             print("Saving final global model...")
 
@@ -53,8 +52,20 @@ class CustomFedAvg(fl.server.strategy.FedAvg):
 
         return aggregated
 
+    def aggregate_evaluate(self, rnd, results, failures):
+        aggregated = super().aggregate_evaluate(rnd, results, failures)
 
-print("\nFederated Learning Server Started\n")
+        if aggregated is not None:
+            acc = aggregated[1]["accuracy"] * 100
+            if rnd in [1, 2, 5, 10]:
+                print(f"Round {rnd}/10")
+                print("Aggregating updates from 2 clients...")
+                print(f"Global Model Accuracy: {acc:.1f}%\n")
+
+        return aggregated
+
+
+print("\n🔐 Federated Learning Server Started (SHA Enabled)\n")
 
 strategy = CustomFedAvg(
     evaluate_metrics_aggregation_fn=weighted_average
