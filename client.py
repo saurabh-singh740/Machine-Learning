@@ -5,7 +5,7 @@ from collections import OrderedDict
 from model import DiabetesNet
 from utils import load_data
 
-# 🔐 NEW IMPORTS (for SHA)
+# 🔐 IMPORTS FOR SHA-512
 import hashlib
 import pickle
 
@@ -37,11 +37,11 @@ def set_parameters(net, parameters):
     net.load_state_dict(state_dict, strict=True)
 
 # -------------------------------
-# 🔐 Helper: Compute SHA-256 hash
+# 🔐 Helper: Compute SHA-512 hash
 # -------------------------------
-def compute_sha256(parameters):
+def compute_sha512(parameters):
     data = pickle.dumps(parameters)
-    return hashlib.sha256(data).hexdigest()
+    return hashlib.sha512(data).hexdigest()
 
 # -------------------------------
 # Local training function
@@ -101,13 +101,13 @@ class DiabetesClient(fl.client.NumPyClient):
 
         updated_params = get_parameters(model)
 
-        # 🔐 SHA-256 hash generate
-        sha_hash = compute_sha256(updated_params)
+        # 🔐 SHA-512 hash generate
+        sha_hash = compute_sha512(updated_params)
 
-        print("Sending model update with SHA-256 hash\n")
+        print("Sending model update with SHA-512 hash\n")
 
         # ✅ Core FL logic SAME, only metadata added
-        return updated_params, len(trainloader.dataset), {"sha256": sha_hash}
+        return updated_params, len(trainloader.dataset), {"sha512": sha_hash}
 
     def evaluate(self, parameters, config):
         set_parameters(model, parameters)

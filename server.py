@@ -23,15 +23,15 @@ class CustomFedAvg(fl.server.strategy.FedAvg):
 
         print(f"\n🔐 Verifying model updates (Round {rnd})")
 
-        # 🔐 READ SHA FROM CLIENT METADATA
+        # 🔐 READ SHA-512 FROM CLIENT METADATA
         for client_proxy, fit_res in results:
-            sha = fit_res.metrics.get("sha256", None)
+            sha = fit_res.metrics.get("sha512", None)
             if sha:
-                print(f"✔ Client {client_proxy.cid} SHA-256: {sha[:16]}...")
+                print(f"✔ Client {client_proxy.cid} SHA-512: {sha[:20]}...")
             else:
-                print(f"⚠ Client {client_proxy.cid} sent no SHA")
+                print(f"⚠ Client {client_proxy.cid} sent no SHA-512")
 
-        # ✅ DO NORMAL FEDAVG (DO NOT TOUCH CORE LOGIC)
+        # ✅ DO NORMAL FEDAVG (CORE LOGIC UNTOUCHED)
         aggregated = super().aggregate_fit(rnd, results, failures)
 
         # Save final global model
@@ -65,7 +65,7 @@ class CustomFedAvg(fl.server.strategy.FedAvg):
         return aggregated
 
 
-print("\n🔐 Federated Learning Server Started (SHA Enabled)\n")
+print("\n🔐 Federated Learning Server Started (SHA-512 Enabled)\n")
 
 strategy = CustomFedAvg(
     evaluate_metrics_aggregation_fn=weighted_average
